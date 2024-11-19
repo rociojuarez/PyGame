@@ -8,6 +8,7 @@ class Celda:
     def __init__(self):
         self.hay_mina = False
         self.revelada = False
+        self.flag = False
         self.minas_adyacentes = 0
 
 # Crear la matriz
@@ -61,11 +62,13 @@ def modificar_ceros(matriz, tablero):
                     matriz[y][x] = conteo_adyacente
 # Función para dibujar el tablero
 def dibujar_tablero(tablero, pantalla):
+    imagen_bandera = pygame.image.load("./assets/flag.png")
+    imagen_marcador = pygame.transform.scale(imagen_bandera, (TAMAÑO_CELDA, TAMAÑO_CELDA))
     for y in range(TAMAÑO_MATRIZ):
         for x in range(TAMAÑO_MATRIZ):
             celda = tablero[y][x]
             rect = pygame.Rect(x * TAMAÑO_CELDA, y * TAMAÑO_CELDA + 50, TAMAÑO_CELDA, TAMAÑO_CELDA)  # Desplazar el tablero hacia abajo
-            if celda.revelada:
+            if celda.revelada and not celda.flag:
                 pygame.draw.rect(pantalla, BLANCO, rect)
                 if celda.hay_mina:
                     pygame.draw.circle(pantalla, ROJO, rect.center, TAMAÑO_CELDA // 4)
@@ -73,6 +76,8 @@ def dibujar_tablero(tablero, pantalla):
                     fuente = pygame.font.Font(None, 36)
                     texto = fuente.render(str(celda.minas_adyacentes), True, NEGRO)
                     pantalla.blit(texto, rect.topleft)
+            elif celda.flag:
+                pantalla.blit(imagen_marcador, rect.topleft)
             else:
                 pygame.draw.rect(pantalla, GRIS, rect)
 
@@ -130,9 +135,6 @@ def main(pantalla):
     tablero = crear_tablero()
     matriz_dinamica = crear_matriz_dinamica(tablero)
     modificar_ceros(matriz_dinamica, tablero)
-    imagen_bandera = pygame.image.load("./assets/flag.png")
-    imagen_marcador = pygame.transform.scale(imagen_bandera, (TAMAÑO_CELDA, TAMAÑO_CELDA))
-
 
     # Función principal del juego
 
@@ -159,12 +161,12 @@ def main(pantalla):
                                 print("¡Perdiste!")
                                 pygame.quit()
                                 sys.exit()
-                    elif evento.button == 3:
-                        columna, fila = x // TAMAÑO_CELDA, (y - 50) // TAMAÑO_CELDA  # Ajustar la fila
-                        if 0 <= fila < TAMAÑO_MATRIZ and 0 <= columna < TAMAÑO_MATRIZ:
-                            if not tablero[fila][columna].revelada:
-                                tablero[fila][columna].revelada = True
-                                pantalla.blit(imagen_marcador, (columna, fila))
+                elif evento.button == 3:
+                    columna, fila = x // TAMAÑO_CELDA, (y - 50) // TAMAÑO_CELDA  # Ajustar la fila
+                    if 0 <= fila < TAMAÑO_MATRIZ and 0 <= columna < TAMAÑO_MATRIZ:
+                        if not tablero[fila][columna].revelada:
+                            tablero[fila][columna].flag = True
+
 
             pantalla.fill(NEGRO)
             dibujar_boton_reiniciar(pantalla)
