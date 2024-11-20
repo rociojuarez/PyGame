@@ -60,22 +60,44 @@ def modificar_ceros(matriz, tablero):
                 conteo_adyacente = tablero[y][x].minas_adyacentes
                 if conteo_adyacente > 0:
                     matriz[y][x] = conteo_adyacente
+
+def calcular_vacios(tablero, fila , columna):
+    for y in range(TAMAÑO_MATRIZ):
+        for x in range(TAMAÑO_MATRIZ):
+            if 0 <= y < TAMAÑO_MATRIZ and 0 <= x < TAMAÑO_MATRIZ:
+                if es_vecino(columna, fila, x, y):
+                    if tablero[y][x].minas_adyacentes == 0 and tablero[y][x].hay_mina == False:
+                        tablero[y][x].revelada = True
+                    elif tablero[y][x].minas_adyacentes > 0 and tablero[y][x].hay_mina == False:
+                        tablero[y][x].revelada = True
+
+def es_vecino(columna, fila, columna2, fila2):
+    return abs(columna - columna2) <= 1 and abs(fila - fila2) <= 1
+
 # Función para dibujar el tablero
-def dibujar_tablero(tablero, pantalla):
+def dibujar_tablero(tablero, pantalla, final):
     imagen_bandera = pygame.image.load("./assets/flag.png")
     imagen_marcador = pygame.transform.scale(imagen_bandera, (TAMAÑO_CELDA, TAMAÑO_CELDA))
+    imagen_mina = pygame.image.load("./assets/bomba.png")
+    imagen_bomba = pygame.transform.scale(imagen_mina, (TAMAÑO_CELDA, TAMAÑO_CELDA))
     for y in range(TAMAÑO_MATRIZ):
         for x in range(TAMAÑO_MATRIZ):
             celda = tablero[y][x]
             rect = pygame.Rect(x * TAMAÑO_CELDA, y * TAMAÑO_CELDA + 50, TAMAÑO_CELDA, TAMAÑO_CELDA)  # Desplazar el tablero hacia abajo
+            if final:
+                celda.revelada = True
+                celda.flag = False
             if celda.revelada and not celda.flag:
                 pygame.draw.rect(pantalla, BLANCO, rect)
                 if celda.hay_mina:
                     pygame.draw.circle(pantalla, ROJO, rect.center, TAMAÑO_CELDA // 4)
+                    pantalla.blit(imagen_bomba, rect.topleft)
                 elif celda.minas_adyacentes > 0:
                     fuente = pygame.font.Font(None, 36)
                     texto = fuente.render(str(celda.minas_adyacentes), True, NEGRO)
                     pantalla.blit(texto, rect.topleft)
+                elif celda.minas_adyacentes == 0:
+                    calcular_vacios(tablero, y, x)
             elif celda.flag:
                 pantalla.blit(imagen_marcador, rect.topleft)
             else:
@@ -85,9 +107,9 @@ def dibujar_tablero(tablero, pantalla):
 
 # Función para dibujar el botón "Reiniciar"
 def dibujar_boton_reiniciar(pantalla):
-    fuente = pygame.font.Font(None, 36)
+    fuente = pygame.font.Font(None, 25)
     texto = fuente.render("Reiniciar", True, NEGRO)
-    rect = texto.get_rect(center=(ANCHO // 2, 25))  # Botón centrado en la parte superior
+    rect = texto.get_rect(center=(55, 25))
     pygame.draw.rect(pantalla, GRIS, rect.inflate(20, 10))  # Fondo del botón
     pantalla.blit(texto, rect)
     return rect
@@ -129,14 +151,23 @@ def pantalla_inicio(pantalla):
 
             pygame.display.flip()
 
+def puntaje(pantalla, contador_puntaje):
+    fuente = pygame.font.Font(None, 25)
+    texto = fuente.render(f"Puntaje: {contador_puntaje}", True, NEGRO)
+    rect = texto.get_rect(center=(ANCHO - 60, 25))
+    pygame.draw.rect(pantalla, GRIS, rect.inflate(20, 10))  # Fondo del botón
+    pantalla.blit(texto, rect)
+
+
+
 # Función principal del juego
 def main(pantalla):
     pantalla_inicio(pantalla)  # Llama a la pantalla de inicio
     tablero = crear_tablero()
     matriz_dinamica = crear_matriz_dinamica(tablero)
     modificar_ceros(matriz_dinamica, tablero)
-
-    # Función principal del juego
+    final = False
+    contador_puntaje = 0000
 
     while True:
         for evento in pygame.event.get():
@@ -149,26 +180,31 @@ def main(pantalla):
                     # Verificar si se hace clic en el botón "Reiniciar"
                     boton_rect = dibujar_boton_reiniciar(pantalla)
                     if boton_rect.collidepoint(evento.pos):
+                        final = False
                         tablero = crear_tablero()  # Reiniciar el tablero
                         continue  # Volver a la parte superior del bucle
 
                     # Verificar si se hace clic en una celda
                     columna, fila = x // TAMAÑO_CELDA, (y - 50) // TAMAÑO_CELDA  # Ajustar la fila
                     if 0 <= fila < TAMAÑO_MATRIZ and 0 <= columna < TAMAÑO_MATRIZ:
-                        if not tablero[fila][columna].revelada:
+                        if not tablero[fila][columna].revelada and not tablero[fila][columna].flag:
                             tablero[fila][columna].revelada = True
                             if tablero[fila][columna].hay_mina:
-                                print("¡Perdiste!")
-                                pygame.quit()
-                                sys.exit()
+                                final = True
+                            else:
+                                contador_puntaje += 1
+
                 elif evento.button == 3:
                     columna, fila = x // TAMAÑO_CELDA, (y - 50) // TAMAÑO_CELDA  # Ajustar la fila
                     if 0 <= fila < TAMAÑO_MATRIZ and 0 <= columna < TAMAÑO_MATRIZ:
-                        if not tablero[fila][columna].revelada:
+                        if not tablero[fila][columna].revelada and not tablero[fila][columna].flag:
                             tablero[fila][columna].flag = True
+                        elif tablero[fila][columna].flag and not tablero[fila][columna].revelada:
+                            tablero[fila][columna].flag = False
 
 
             pantalla.fill(NEGRO)
             dibujar_boton_reiniciar(pantalla)
-            dibujar_tablero(tablero, pantalla)
+            puntaje(pantalla, contador_puntaje)
+            dibujar_tablero(tablero, pantalla, final)
             pygame.display.flip()

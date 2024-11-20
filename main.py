@@ -1,5 +1,3 @@
-import pygame
-import sys
 from lib import *
 
 # Inicializa Pygame
