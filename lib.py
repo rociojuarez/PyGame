@@ -5,59 +5,59 @@ import os
 from json import *
 
 # Crear la matriz
-def crear_tablero(celda:dict):
-    tablero = inicializar_matriz(celda)
-    colocar_minas(tablero)
-    calcular_minas_adyacentes(tablero)
+def crear_tablero(celda:dict, cantidad_filas, cantidad_columnas, cantidad_bombas):
+    tablero = inicializar_matriz(celda, cantidad_filas, cantidad_columnas)
+    colocar_minas(tablero, cantidad_filas, cantidad_columnas, cantidad_bombas)
+    calcular_minas_adyacentes(tablero, cantidad_filas, cantidad_columnas)
     return tablero
 
-def inicializar_matriz(celda: dict)->list:
+def inicializar_matriz(celda: dict, cantidad_filas, cantidad_columnas)->list:
     matriz = []
-    for i in range(CANTIDAD_FILAS):
+    for i in range(cantidad_filas):
         fila = []
-        for j in range(CANTIDAD_COLUMNAS):
+        for j in range(cantidad_columnas):
             fila.append(celda.copy())
         matriz.append(fila)
     return matriz
 
 
 # Colocar minas aleatoriamente
-def colocar_minas(tablero):
+def colocar_minas(tablero, cantidad_filas, cantidad_columnas, cantidad_minas):
     minas_colocadas = 0
-    while minas_colocadas < CANTIDAD_MINAS:
-        x = random.randint(0, CANTIDAD_COLUMNAS - 1)
-        y = random.randint(0, CANTIDAD_FILAS - 1)
+    while minas_colocadas < cantidad_minas:
+        x = random.randint(0, cantidad_columnas - 1)
+        y = random.randint(0, cantidad_filas - 1)
         if not tablero[y][x]["hay_mina"]:
             tablero[y][x].update({"hay_mina": True})
             minas_colocadas += 1
 
 # Calcular minas adyacentes
-def calcular_minas_adyacentes(tablero):
-    for y in range(CANTIDAD_FILAS):
-        for x in range(CANTIDAD_COLUMNAS):
+def calcular_minas_adyacentes(tablero, cantidad_filas, cantidad_columnas):
+    for y in range(cantidad_filas):
+        for x in range(cantidad_columnas):
             if tablero[y][x]["hay_mina"]:
                 for desplazamiento_fila in range(-1, 2):
                     for desplazamiento_columna in range(-1, 2):
                         fila_vecina = y + desplazamiento_fila
                         columna_vecina = x + desplazamiento_columna
-                        if 0 <= fila_vecina < CANTIDAD_FILAS and 0 <= columna_vecina < CANTIDAD_COLUMNAS:
+                        if 0 <= fila_vecina < cantidad_filas and 0 <= columna_vecina < cantidad_columnas:
                             if not tablero[fila_vecina][columna_vecina]["hay_mina"]:
                                 tablero[fila_vecina][columna_vecina]["minas_adyacentes"] += 1
 
-def inicializar_matriz_ceros()->list:
+def inicializar_matriz_ceros(cantidad_filas, cantidad_columnas)->list:
     matriz = []
-    for i in range(CANTIDAD_FILAS):
+    for i in range(cantidad_filas):
         fila = []
-        for j in range(CANTIDAD_COLUMNAS):
+        for j in range(cantidad_columnas):
             fila.append(0)
         matriz.append(fila)
     return matriz
 
 # Crear matriz dinámica con -1 y 0
-def crear_matriz_dinamica(tablero):
-    matriz = inicializar_matriz_ceros()
-    for y in range(CANTIDAD_FILAS):
-        for x in range(CANTIDAD_COLUMNAS):
+def crear_matriz_dinamica(tablero, cantidad_filas, cantidad_columnas):
+    matriz = inicializar_matriz_ceros(cantidad_filas, cantidad_columnas)
+    for y in range(cantidad_filas):
+        for x in range(cantidad_columnas):
             if tablero[y][x]["hay_mina"]:
                 matriz[y][x] = -1
             elif tablero[y][x]["minas_adyacentes"] == 0:
@@ -65,16 +65,16 @@ def crear_matriz_dinamica(tablero):
     return matriz
 
 # Modificar ceros en la matriz según las minas contiguas
-def modificar_ceros(matriz, tablero):
-    for y in range(CANTIDAD_FILAS):
-        for x in range(CANTIDAD_COLUMNAS):
+def modificar_ceros(matriz, tablero, cantidad_filas, cantidad_columnas):
+    for y in range(cantidad_filas):
+        for x in range(cantidad_columnas):
             if matriz[y][x] == 0 and not tablero[y][x]["hay_mina"]:
                 conteo_adyacente = tablero[y][x]["minas_adyacentes"]
                 if conteo_adyacente > 0:
                     matriz[y][x] = conteo_adyacente
 
-def calcular_vacios(tablero, fila , columna, contador_puntaje):
-    if not (0 <= fila < TAMAÑO_MATRIZ and 0 <= columna < TAMAÑO_MATRIZ):
+def calcular_vacios(tablero, fila , columna, contador_puntaje, cantidad_filas, cantidad_columnas):
+    if not (0 <= fila < cantidad_filas and 0 <= columna < cantidad_columnas):
         return
     celda_actual = tablero[fila][columna]
     if celda_actual["revelada"] or celda_actual["hay_mina"] or celda_actual["flag"]:
@@ -90,36 +90,40 @@ def calcular_vacios(tablero, fila , columna, contador_puntaje):
                 continue
             fila_vecina = fila + desplazamiento_fila
             columna_vecina = columna + desplazamiento_columna
-            calcular_vacios(tablero, fila_vecina, columna_vecina, contador_puntaje)
+            calcular_vacios(tablero, fila_vecina, columna_vecina, contador_puntaje, cantidad_filas, cantidad_columnas)
     return contador_puntaje
 
 
 # Función para dibujar el tablero
-def dibujar_tablero(tablero, pantalla, final):
+def dibujar_tablero(tablero, pantalla, final, cantidad_filas, cantidad_columnas):
+    imagen_celda = pygame.image.load("./assets/celda.png")
+    imagen_celda = pygame.transform.scale(imagen_celda, (TAMAÑO_CELDA, TAMAÑO_CELDA))
     imagen_bandera = pygame.image.load("./assets/flag.png")
     imagen_marcador = pygame.transform.scale(imagen_bandera, (TAMAÑO_CELDA, TAMAÑO_CELDA))
     imagen_mina = pygame.image.load("./assets/bomba.png")
     imagen_bomba = pygame.transform.scale(imagen_mina, (TAMAÑO_CELDA, TAMAÑO_CELDA))
-    for y in range(CANTIDAD_FILAS):
-        for x in range(CANTIDAD_COLUMNAS):
+
+
+    for y in range(cantidad_filas):
+        for x in range(cantidad_columnas):
             celda = tablero[y][x]
             rect = pygame.Rect(x * TAMAÑO_CELDA, y * TAMAÑO_CELDA + 50, TAMAÑO_CELDA, TAMAÑO_CELDA)  # Desplazar el tablero hacia abajo
             if final:
                 celda["revelada"] = True
                 celda["flag"] = False
             if celda["revelada"] and not celda["flag"]:
-                pygame.draw.rect(pantalla, BLANCO, rect)
+                pygame.draw.rect(pantalla, FONDO_CELDA, rect)
                 if celda["hay_mina"]:
-                    pygame.draw.circle(pantalla, ROJO, rect.center, TAMAÑO_CELDA // 4)
                     pantalla.blit(imagen_bomba, rect.topleft)
                 elif celda["minas_adyacentes"] > 0:
                     fuente = pygame.font.Font(None, 36)
-                    texto = fuente.render(str(celda["minas_adyacentes"]), True, NEGRO)
-                    pantalla.blit(texto, rect.topleft)
+                    texto = fuente.render(str(celda["minas_adyacentes"]), True, BLANCO)
+                    pantalla.blit(texto, rect)
             elif celda["flag"]:
+                pantalla.blit(imagen_celda, rect.topleft)
                 pantalla.blit(imagen_marcador, rect.topleft)
             else:
-                pygame.draw.rect(pantalla, GRIS, rect)
+                pantalla.blit(imagen_celda, rect.topleft)
 
             pygame.draw.rect(pantalla, NEGRO, rect, 1)
 
@@ -132,59 +136,17 @@ def dibujar_boton_reiniciar(pantalla):
     pantalla.blit(texto, rect)
     return rect
 
-# Pantalla de inicio
-def pantalla_inicio(pantalla)->str:
-    imagen_fondo = pygame.image.load("./assets/background.jpeg").convert()
-    run = True
-    retorno = ""
-    niveles = ["Fácil", "Medio", "Difícil"]
-    indice_nivel = 0
-    while run:
-        pantalla.blit(imagen_fondo, (0, 0))
-        fuente = pygame.font.Font(None, 48)
-
-        # Botones
-        boton_jugar = fuente.render("Jugar", True, BLANCO)
-        boton_nivel = fuente.render(f"Nivel: {niveles[indice_nivel]}", True, BLANCO)
-        boton_puntajes = fuente.render("Ver Puntajes", True, BLANCO)
-        boton_salir = fuente.render("Salir", True, BLANCO)
-
-        boton_juego = pantalla.blit(boton_jugar, (ANCHO // 2 - boton_jugar.get_width() // 2, ALTO // 2 - 60))
-        seleccionador_niveles = pantalla.blit(boton_nivel, (ANCHO // 2 - boton_nivel.get_width() // 2, ALTO // 2 - 20))
-        boton_pantalla_puntajes = pantalla.blit(boton_puntajes, (ANCHO // 2 - boton_puntajes.get_width() // 2, ALTO // 2 + 20))
-        button_quit = pantalla.blit(boton_salir, (ANCHO // 2 - boton_salir.get_width() // 2, ALTO // 2 + 60))
-
-        for evento in pygame.event.get():
-            if evento.type == pygame.QUIT:
-                run = False
-                retorno = "salir"
-            if evento.type == pygame.MOUSEBUTTONDOWN:
-                if button_quit.collidepoint(evento.pos):
-                    run = False
-                    retorno = "salir"
-                elif boton_juego.collidepoint(evento.pos):
-                    run = False
-                    retorno = "jugar"
-                elif boton_pantalla_puntajes.collidepoint(evento.pos):
-                    run = False
-                    retorno = "puntajes"
-                elif seleccionador_niveles.collidepoint(evento.pos):
-                    indice_nivel = (indice_nivel + 1) % len(niveles)
-
-            pygame.display.flip()
-    return retorno
-
-def verificar_juego_ganado(puntaje, tablero):
+def verificar_juego_ganado(tablero, cantidad_filas, cantidad_columnas, cantidad_minas):
     resultado = False
     contador_minas = 0
-    for i in range(CANTIDAD_FILAS):
-        for j in range(CANTIDAD_COLUMNAS):
+    for i in range(cantidad_filas):
+        for j in range(cantidad_columnas):
             if (tablero[i][j]["flag"] == False and tablero[i][j]["hay_mina"] == True) or (tablero[i][j]["revelada"] == False and tablero[i][j]["hay_mina"] == False):
                 resultado = False
                 break
             if tablero[i][j]["flag"] == True and tablero[i][j]["hay_mina"] == True:
                 contador_minas += 1
-            if contador_minas == CANTIDAD_MINAS:
+            if contador_minas == cantidad_minas:
                 resultado = True
                 break
     return resultado
@@ -204,10 +166,8 @@ def obtener_mejores_puntajes(puntajes):
     """
     jugadores = []
     for jugador in puntajes:
-        print("len: ", len(puntajes), "jugador: ", jugador)
         if len(puntajes) >= 1:
             jugadores.append(jugador)
-    print(jugadores)
     def obtener_puntaje(jugadores):
         return jugadores["puntaje"]
 
@@ -215,32 +175,59 @@ def obtener_mejores_puntajes(puntajes):
     return ordenados
 
 def mostrar_puntajes(pantalla, path_archivo_puntajes):
+    imagen_fondo = pygame.image.load("./assets/back.jpg")
     puntajes = cargar_archivo_json(path_archivo_puntajes)
     mejores_puntajes = obtener_mejores_puntajes(puntajes)
-    fuente = pygame.font.SysFont("Arial", 30, bold=True)
+    fuente_titulo = pygame.font.Font("./assets/fonts/04b_25__.ttf", 40)
+    fuente = pygame.font.Font("./assets/fonts/04b_25__.ttf", 30)
     run =True
     while run:
-        # Dibujar fondo y elementos de la pantalla
-        pantalla.fill(NEGRO)
+        pantalla.blit(imagen_fondo, (0, 0))
+
+        # Crear el recuadro opaco en el centro
+        ancho_recuadro = ANCHO // 1.2
+        alto_recuadro = ALTO // 1.2
+        x_recuadro = (ANCHO - ancho_recuadro) // 2
+        y_recuadro = (ALTO - alto_recuadro) // 2
+
+        recuadro = pygame.Surface((ancho_recuadro, alto_recuadro))
+        recuadro.set_alpha(180)  # Nivel de opacidad (0 es completamente transparente, 255 es sólido)
+        recuadro.fill((0, 0, 50))  # Color del recuadro (azul oscuro)
+        pantalla.blit(recuadro, (x_recuadro, y_recuadro))
 
         # Dibujar título
-        texto = fuente.render("** Mejores Puntajes **", True, BLANCO)
-        rect_texto = texto.get_rect(center=(ANCHO // 2, ALTO // 2 - 150))
+        texto = fuente_titulo.render("** Mejores Puntajes **", True, BLANCO)
+        rect_texto = texto.get_rect(center=(ANCHO // 2, 100))
         pantalla.blit(texto, rect_texto)
 
         # Dibujar botón "Volver"
-        texto_volver = fuente.render("<- Volver", True, BLANCO)
-        boton_volver = pantalla.blit(
-            texto_volver,
-            (ANCHO // 2 - texto_volver.get_width() // 2, ALTO // 2 + 150))
+        texto_volver = fuente.render("Volver", True, BLANCO)
+        boton_volver = texto_volver.get_rect(center=(110, 35))
+
+        # Dibujar fondo del botón
+        fondo_rect = pygame.Rect(
+            boton_volver.left - 10, boton_volver.top - 10, boton_volver.width + 20, boton_volver.height + 20
+        )
+
+        # Detectar hover
+        mouse_pos = pygame.mouse.get_pos()
+        hover = fondo_rect.collidepoint(mouse_pos)
+
+        # Colores según hover
+        color_fondo = (30, 30, 80) if hover else (20, 20, 60)  # Azul oscuro
+        color_borde = BLANCO if hover else NEGRO
+
+        pygame.draw.rect(pantalla, color_fondo, fondo_rect)
+        pygame.draw.rect(pantalla, color_borde, fondo_rect, 2)
+
+        # Dibujar texto del botón
+        pantalla.blit(texto_volver, boton_volver)
 
         if mejores_puntajes:
-            # Dibujar pantalla de ingreso de nombre
             alto_nombres = 50
             for i, jugador in enumerate(mejores_puntajes, start=1):
-                print(f"{i}. {jugador["nombre"]}: {jugador["puntaje"]} puntos")
                 texto_jugador = fuente.render(f"{i}. {jugador["nombre"]}: {jugador["puntaje"]} puntos", True, BLANCO)
-                rect_nombre = texto_jugador.get_rect(center=(ANCHO // 2, ALTO // 2 + alto_nombres))
+                rect_nombre = texto_jugador.get_rect(center=(ANCHO // 2, ALTO // 4 + alto_nombres))
                 alto_nombres += 30
                 pantalla.blit(texto_jugador, rect_nombre)
         else:
@@ -254,14 +241,33 @@ def mostrar_puntajes(pantalla, path_archivo_puntajes):
                 run = False
             if evento.type == pygame.MOUSEBUTTONDOWN:
                 if boton_volver.collidepoint(evento.pos):
-                    pantalla_inicio(pantalla)
+                    main(pantalla)
                     run = False
     return None
 
-def iniciar_juego(celda, pantalla):
-    tablero = crear_tablero(celda)
-    matriz_dinamica = crear_matriz_dinamica(tablero)
-    modificar_ceros(matriz_dinamica, tablero)
+def iniciar_juego(celda, pantalla, indice_nivel:int):
+    if indice_nivel == 1:
+        cantidad_filas = 16
+        cantidad_columnas = 16
+        cantidad_bombas = 40
+        ancho_nivel = ANCHO
+        alto_nivel = ALTO
+    elif indice_nivel == 2:
+        cantidad_filas = 16
+        cantidad_columnas = 30
+        cantidad_bombas = 100
+        ancho_nivel = ANCHO * 1.9
+        alto_nivel = ALTO +110
+    else:
+        cantidad_filas = 8
+        cantidad_columnas = 8
+        cantidad_bombas = 10
+        ancho_nivel = ANCHO // 2 + 50
+        alto_nivel = ALTO // 2 + 50
+    pantalla = pygame.display.set_mode((ancho_nivel, alto_nivel))
+    tablero = crear_tablero(celda, cantidad_filas, cantidad_columnas, cantidad_bombas)
+    matriz_dinamica = crear_matriz_dinamica(tablero, cantidad_filas, cantidad_columnas)
+    modificar_ceros(matriz_dinamica, tablero, cantidad_filas, cantidad_columnas)
     final = False
     contador_puntaje = 0000
     corriendo = True
@@ -280,24 +286,23 @@ def iniciar_juego(celda, pantalla):
                 if evento.type == pygame.MOUSEBUTTONDOWN:
                     x, y = evento.pos
                     if evento.button == 1 and boton_rect.collidepoint(evento.pos):
-                        tablero = crear_tablero(celda)
-                        matriz_dinamica = crear_matriz_dinamica(tablero)
-                        modificar_ceros(matriz_dinamica, tablero)
+                        tablero = crear_tablero(celda, cantidad_filas, cantidad_columnas, cantidad_bombas)
+                        matriz_dinamica = crear_matriz_dinamica(tablero, cantidad_filas, cantidad_columnas)
+                        modificar_ceros(matriz_dinamica, tablero, cantidad_filas, cantidad_columnas)
                         final = False
                         contador_puntaje = 0000
                         actualizar_pantalla = True
 
                     else:
                         columna, fila = x // TAMAÑO_CELDA, (y - 50) // TAMAÑO_CELDA
-                        if 0 <= fila < TAMAÑO_MATRIZ and 0 <= columna < TAMAÑO_MATRIZ:
+                        if 0 <= fila < cantidad_filas and 0 <= columna < cantidad_columnas:
                             if evento.button == 1:
                                 if not tablero[fila][columna]["revelada"] and not tablero[fila][columna]["flag"]:
                                     if tablero[fila][columna]["hay_mina"]:
                                         final = True
                                     else:
                                         if tablero[fila][columna]["minas_adyacentes"] == 0:
-                                            contador_puntaje = calcular_vacios(tablero, fila, columna, contador_puntaje)
-                                            print("contador puntaje: ", contador_puntaje)
+                                            contador_puntaje = calcular_vacios(tablero, fila, columna, contador_puntaje, cantidad_filas, cantidad_columnas)
                                         else:
                                             tablero[fila][columna]["revelada"] = True
                                             contador_puntaje += 1
@@ -307,7 +312,7 @@ def iniciar_juego(celda, pantalla):
                                 if not tablero[fila][columna]["revelada"]:
                                     tablero[fila][columna]["flag"] = not tablero[fila][columna]["flag"]
                                     actualizar_pantalla = True
-                    juego_ganado = verificar_juego_ganado(contador_puntaje, tablero)
+                    juego_ganado = verificar_juego_ganado(tablero, cantidad_filas, cantidad_columnas, cantidad_bombas)
         else:
             for evento in pygame.event.get():
                 if evento.type == pygame.QUIT:
@@ -315,18 +320,18 @@ def iniciar_juego(celda, pantalla):
                     pygame.quit()
                 elif evento.type == pygame.KEYDOWN:
                     if evento.key == pygame.K_RETURN:
-                        jugadores.append({"nombre": nombre_ingresado, "puntaje": contador_puntaje})# Finalizar ingreso del nombre
+                        jugadores.append({"nombre": nombre_ingresado, "puntaje": contador_puntaje})
                         guardar_archivo_json(PATH_ARCHIVO_PUNTAJES, jugadores)
                         mostrar_puntajes(pantalla, PATH_ARCHIVO_PUNTAJES)
                         corriendo = False
                     elif evento.key == pygame.K_BACKSPACE:  # Borrar último carácter
                         nombre_ingresado = nombre_ingresado[:-1]
-                    else:  # Agregar nuevo carácter
+                    else:
                         nombre_ingresado += evento.unicode
 
             # Dibujar pantalla de ingreso de nombre
-            pantalla.fill(NEGRO)
-            texto = fuente.render("¡Ganaste! Ingresa tu nombre:", True, BLANCO)
+            pantalla.fill(FONDO)
+            texto = fuente.render("¡Ganaste! Ingresa tu nombre, y para finalizar apreta ENTER:", True, BLANCO)
             rect_texto = texto.get_rect(center=(ANCHO // 2, ALTO // 2 - 50))
             pantalla.blit(texto, rect_texto)
 
@@ -337,18 +342,19 @@ def iniciar_juego(celda, pantalla):
 
             pygame.display.flip()
         if actualizar_pantalla:
-            pantalla.fill(NEGRO)
+            pantalla.fill(FONDO)
             dibujar_boton_reiniciar(pantalla)
-            puntaje(pantalla, contador_puntaje)
-            dibujar_tablero(tablero, pantalla, final)
+            puntaje(pantalla, contador_puntaje, ancho_nivel)
+            dibujar_tablero(tablero, pantalla, final, cantidad_filas, cantidad_columnas)
+
             pygame.display.flip()
             actualizar_pantalla = False
 
 
-def puntaje(pantalla, contador_puntaje):
+def puntaje(pantalla, contador_puntaje, ancho):
     fuente = pygame.font.Font(None, 25)
     texto = fuente.render(f"Puntaje: {str(contador_puntaje).zfill(4)}", True, NEGRO)
-    rect = texto.get_rect(center=(ANCHO - 60, 25))
+    rect = texto.get_rect(center=(ancho - 60, 25))
     pygame.draw.rect(pantalla, GRIS, rect.inflate(20, 10))  # Fondo del botón
     pantalla.blit(texto, rect)
     return None
@@ -360,14 +366,66 @@ def main(pantalla):
         "flag": False,
         "minas_adyacentes": 0
     }
-    seleccion_inicio = pantalla_inicio(pantalla)
-    match seleccion_inicio:
-        case "salir":
-            pygame.quit()
-        case "jugar":
-            iniciar_juego(celda,pantalla)
-        case "puntajes":
-            mostrar_puntajes(pantalla, PATH_ARCHIVO_PUNTAJES)
-        case _:
-            print("error")
+    imagen_fondo = pygame.image.load("./assets/back.jpg")
+    run = True
+    niveles = ["Facil", "Medio", "Dificil"]
+    indice_nivel = 0
+    while run:
+        pantalla.blit(imagen_fondo, (0, 0))
+        font = pygame.font.Font("./assets/fonts/04b_25__.ttf", 100)
+        font_menu_buttons = pygame.font.Font("./assets/fonts/04b_25__.ttf", 30)
+
+        game_name = font.render("Buscaminas", True, BLANCO)
+        text_rect = game_name.get_rect(center=(ANCHO/2, ALTO/8))
+        pantalla.blit(game_name, text_rect)
+
+        botones = [
+            {"texto": "Jugar", "pos": (ANCHO // 5, ALTO // 2+ 100)},
+            {"texto": f"Nivel: {niveles[indice_nivel]}", "pos": (ANCHO // 5, ALTO // 2 + 160)},
+            {"texto": "Ver Puntajes", "pos": (ANCHO // 5, ALTO // 2 + 220)},
+            {"texto": "Salir", "pos": (ANCHO // 5, ALTO // 2 + 280)},
+        ]
+        botones_rect = []
+
+        for boton in botones:
+            texto_renderizado = font_menu_buttons.render(boton["texto"], True, BLANCO)
+            texto_rect = texto_renderizado.get_rect(center=boton["pos"])
+
+            # Dibujar fondo del botón
+            fondo_rect = pygame.Rect(
+                texto_rect.left - 10, texto_rect.top - 10, texto_rect.width + 20, texto_rect.height + 20
+            )
+
+            # Detectar hover
+            mouse_pos = pygame.mouse.get_pos()
+            hover = fondo_rect.collidepoint(mouse_pos)
+
+            # Colores según hover
+            color_fondo = (30, 30, 80) if hover else (20, 20, 60)
+            color_borde = BLANCO if hover else NEGRO
+
+            pygame.draw.rect(pantalla, color_fondo, fondo_rect)
+            pygame.draw.rect(pantalla, color_borde, fondo_rect, 2)
+
+            # Dibujar texto del botón
+            pantalla.blit(texto_renderizado, texto_rect)
+            botones_rect.append(fondo_rect)
+
+        for evento in pygame.event.get():
+            if evento.type == pygame.QUIT:
+                run = False
+                pygame.quit()
+            if evento.type == pygame.MOUSEBUTTONDOWN:
+                if botones_rect[0].collidepoint(evento.pos):
+                    run = False
+                    iniciar_juego(celda,pantalla, indice_nivel)
+                elif botones_rect[1].collidepoint(evento.pos):
+                    indice_nivel = (indice_nivel + 1) % len(niveles)
+                elif botones_rect[2].collidepoint(evento.pos):
+                    run = False
+                    mostrar_puntajes(pantalla, PATH_ARCHIVO_PUNTAJES)
+                elif botones_rect[3].collidepoint(evento.pos):
+                    run = False
+                    pygame.quit()
+            pygame.display.flip()
 
