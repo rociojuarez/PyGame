@@ -1,8 +1,8 @@
 from constants import *
 import random
 import pygame
-import os
 from json import *
+
 
 # Crear la matriz
 def crear_tablero(celda:dict, cantidad_filas, cantidad_columnas, cantidad_bombas):
@@ -245,6 +245,59 @@ def mostrar_puntajes(pantalla, path_archivo_puntajes):
                     run = False
     return None
 
+def pantalla_ingreso_nombre(contador_puntaje):
+    pantalla = pygame.display.set_mode((ANCHO, ALTO))
+    imagen_fondo = pygame.image.load("./assets/back.jpg")
+    nombre_ingresado = ""
+    fuente = pygame.font.SysFont("Arial", 20, bold=True)
+    fuente_titulo = pygame.font.Font("./assets/fonts/04b_25__.ttf", 40)
+    jugadores = cargar_archivo_json(PATH_ARCHIVO_PUNTAJES)
+    corriendo = True
+    while corriendo:
+        pantalla.blit(imagen_fondo, (0, 0))
+
+        # Crear el recuadro opaco en el centro
+        ancho_recuadro = ANCHO // 1.2
+        alto_recuadro = ALTO // 1.2
+        x_recuadro = (ANCHO - ancho_recuadro) // 2
+        y_recuadro = (ALTO - alto_recuadro) // 2
+
+        recuadro = pygame.Surface((ancho_recuadro, alto_recuadro))
+        recuadro.set_alpha(180)  # Nivel de opacidad (0 es completamente transparente, 255 es sólido)
+        recuadro.fill((0, 0, 50))  # Color del recuadro (azul oscuro)
+        pantalla.blit(recuadro, (x_recuadro, y_recuadro))
+
+        # Dibujar título
+        texto = fuente_titulo.render("¡¡Ganaste!!", True, BLANCO)
+        rect_texto = texto.get_rect(center=(ANCHO // 2, 100))
+        pantalla.blit(texto, rect_texto)
+        for evento in pygame.event.get():
+            if evento.type == pygame.QUIT:
+                corriendo = False
+                pygame.quit()
+            elif evento.type == pygame.KEYDOWN:
+                if evento.key == pygame.K_RETURN:
+                    jugadores.append({"nombre": nombre_ingresado, "puntaje": contador_puntaje})
+                    guardar_archivo_json(PATH_ARCHIVO_PUNTAJES, jugadores)
+                    mostrar_puntajes(pantalla, PATH_ARCHIVO_PUNTAJES)
+                    corriendo = False
+                elif evento.key == pygame.K_BACKSPACE:  # Borrar último carácter
+                    nombre_ingresado = nombre_ingresado[:-1]
+                else:
+                    nombre_ingresado += evento.unicode
+
+        # Dibujar pantalla de ingreso de nombre
+        texto = fuente.render("Ingresa tu nombre, y para finalizar apreta ENTER:", True, BLANCO)
+        rect_texto = texto.get_rect(center=(ANCHO // 2, 250))
+        pantalla.blit(texto, rect_texto)
+
+        # Mostrar nombre ingresado
+        nombre_usuario = fuente_titulo.render(nombre_ingresado, True, BLANCO)
+        rect_nombre = nombre_usuario.get_rect(center=(ANCHO // 2, 290))
+        pantalla.blit(nombre_usuario, rect_nombre)
+
+        pygame.display.flip()
+
 def iniciar_juego(celda, pantalla, indice_nivel:int):
     if indice_nivel == 1:
         cantidad_filas = 16
@@ -274,9 +327,6 @@ def iniciar_juego(celda, pantalla, indice_nivel:int):
     boton_rect = dibujar_boton_reiniciar(pantalla)
     actualizar_pantalla = True
     juego_ganado = False
-    nombre_ingresado = ""
-    fuente = pygame.font.SysFont("Arial", 30, bold=True)
-    jugadores = cargar_archivo_json(PATH_ARCHIVO_PUNTAJES)
     while corriendo:
         if not juego_ganado:
             for evento in pygame.event.get():
@@ -314,33 +364,9 @@ def iniciar_juego(celda, pantalla, indice_nivel:int):
                                     actualizar_pantalla = True
                     juego_ganado = verificar_juego_ganado(tablero, cantidad_filas, cantidad_columnas, cantidad_bombas)
         else:
-            for evento in pygame.event.get():
-                if evento.type == pygame.QUIT:
-                    corriendo = False
-                    pygame.quit()
-                elif evento.type == pygame.KEYDOWN:
-                    if evento.key == pygame.K_RETURN:
-                        jugadores.append({"nombre": nombre_ingresado, "puntaje": contador_puntaje})
-                        guardar_archivo_json(PATH_ARCHIVO_PUNTAJES, jugadores)
-                        mostrar_puntajes(pantalla, PATH_ARCHIVO_PUNTAJES)
-                        corriendo = False
-                    elif evento.key == pygame.K_BACKSPACE:  # Borrar último carácter
-                        nombre_ingresado = nombre_ingresado[:-1]
-                    else:
-                        nombre_ingresado += evento.unicode
+            pantalla_ingreso_nombre(contador_puntaje)
+            corriendo = False
 
-            # Dibujar pantalla de ingreso de nombre
-            pantalla.fill(FONDO)
-            texto = fuente.render("¡Ganaste! Ingresa tu nombre, y para finalizar apreta ENTER:", True, BLANCO)
-            rect_texto = texto.get_rect(center=(ANCHO // 2, ALTO // 2 - 50))
-            pantalla.blit(texto, rect_texto)
-
-            # Mostrar nombre ingresado
-            nombre_usuario = fuente.render(nombre_ingresado, True, BLANCO)
-            rect_nombre = nombre_usuario.get_rect(center=(ANCHO // 2, ALTO // 2 + 50))
-            pantalla.blit(nombre_usuario, rect_nombre)
-
-            pygame.display.flip()
         if actualizar_pantalla:
             pantalla.fill(FONDO)
             dibujar_boton_reiniciar(pantalla)

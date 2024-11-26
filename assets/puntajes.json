@@ -22,5 +22,17 @@
     {
         "nombre": "Rocio",
         "puntaje": 12
+    },
+    {
+        "nombre": "Rocio",
+        "puntaje": 1
+    },
+    {
+        "nombre": "Panda",
+        "puntaje": 0
+    },
+    {
+        "nombre": "Adele",
+        "puntaje": 0
     }
 ]
