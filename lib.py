@@ -21,29 +21,10 @@ def inicializar_matriz(celda: dict, cantidad_filas, cantidad_columnas)->list:
     return matriz
 
 
-# Colocar minas aleatoriamente
-def colocar_minas(tablero, cantidad_filas, cantidad_columnas, cantidad_minas):
-    minas_colocadas = 0
-    while minas_colocadas < cantidad_minas:
-        x = random.randint(0, cantidad_columnas - 1)
-        y = random.randint(0, cantidad_filas - 1)
-        if not tablero[y][x]["hay_mina"]:
-            tablero[y][x].update({"hay_mina": True})
-            minas_colocadas += 1
-
-# Calcular minas adyacentes
-def calcular_minas_adyacentes(tablero, cantidad_filas, cantidad_columnas):
-    for y in range(cantidad_filas):
-        for x in range(cantidad_columnas):
-            if tablero[y][x]["hay_mina"]:
-                for desplazamiento_fila in range(-1, 2):
-                    for desplazamiento_columna in range(-1, 2):
-                        fila_vecina = y + desplazamiento_fila
-                        columna_vecina = x + desplazamiento_columna
-                        if 0 <= fila_vecina < cantidad_filas and 0 <= columna_vecina < cantidad_columnas:
-                            if not tablero[fila_vecina][columna_vecina]["hay_mina"]:
-                                tablero[fila_vecina][columna_vecina]["minas_adyacentes"] += 1
-
+# A. Desarrollar una función que realice la creación dinámica de una matriz de 8 filas por 8
+# columnas. En la misma se deberá incluir:
+#  Menos uno (-1): Si hay una mina en la coordenada de la matriz
+#  Cero (0): Si no hay una mina en la coordenada de la matriz, ni minas contiguas.
 def inicializar_matriz_ceros(cantidad_filas, cantidad_columnas)->list:
     matriz = []
     for i in range(cantidad_filas):
@@ -63,6 +44,31 @@ def crear_matriz_dinamica(tablero, cantidad_filas, cantidad_columnas):
             elif tablero[y][x]["minas_adyacentes"] == 0:
                 matriz[y][x] = 0
     return matriz
+
+def colocar_minas(tablero, cantidad_filas, cantidad_columnas, cantidad_minas):
+    minas_colocadas = 0
+    while minas_colocadas < cantidad_minas:
+        x = random.randint(0, cantidad_columnas - 1)
+        y = random.randint(0, cantidad_filas - 1)
+        if not tablero[y][x]["hay_mina"]:
+            tablero[y][x].update({"hay_mina": True})
+            minas_colocadas += 1
+
+# B. Desarrollar una función que verifique cada elemento de la matriz y realice la siguiente
+# modificación en cada cero (0) que encuentre si se cumple alguna de las siguientes condiciones:
+def calcular_minas_adyacentes(tablero, cantidad_filas, cantidad_columnas):
+    for y in range(cantidad_filas):
+        for x in range(cantidad_columnas):
+            if tablero[y][x]["hay_mina"]:
+                for desplazamiento_fila in range(-1, 2):
+                    for desplazamiento_columna in range(-1, 2):
+                        fila_vecina = y + desplazamiento_fila
+                        columna_vecina = x + desplazamiento_columna
+                        if 0 <= fila_vecina < cantidad_filas and 0 <= columna_vecina < cantidad_columnas:
+                            if not tablero[fila_vecina][columna_vecina]["hay_mina"]:
+                                tablero[fila_vecina][columna_vecina]["minas_adyacentes"] += 1
+
+
 
 # Modificar ceros en la matriz según las minas contiguas
 def modificar_ceros(matriz, tablero, cantidad_filas, cantidad_columnas):
@@ -120,8 +126,24 @@ def dibujar_tablero(tablero, pantalla, final, cantidad_filas, cantidad_columnas)
                     pantalla.blit(imagen_bomba, rect.topleft)
                 elif celda["minas_adyacentes"] > 0:
                     fuente = pygame.font.Font(None, 36)
-                    texto = fuente.render(str(celda["minas_adyacentes"]), True, BLANCO)
-                    pantalla.blit(texto, rect)
+                    color = BLANCO
+                    if celda["minas_adyacentes"] == 2:
+                        color = VERDE
+                    elif celda["minas_adyacentes"] == 3:
+                        color = ROJO
+                    elif celda["minas_adyacentes"] == 4:
+                        color = AMARILLO
+                    elif celda["minas_adyacentes"] == 5:
+                        color = ROSA
+                    elif celda["minas_adyacentes"] == 6:
+                        color = VIOLETA
+                    elif celda["minas_adyacentes"] == 1:
+                        color = AZUL
+                    elif celda["minas_adyacentes"] == 7:
+                        color = CELESTE
+                    texto = fuente.render(str(celda["minas_adyacentes"]), True, color)
+                    texto_center = texto.get_rect(center=rect.center)
+                    pantalla.blit(texto, texto_center)
             elif celda["flag"]:
                 pantalla.blit(imagen_celda, rect.topleft)
                 pantalla.blit(imagen_marcador, rect.topleft)
@@ -164,9 +186,6 @@ def cargar_archivo_json(ruta:str):
     return datos
 
 def obtener_mejores_puntajes(puntajes):
-    """
-    Obtiene los tres mejores puntajes ordenados de mayor a menor.
-    """
     jugadores = []
     for jugador in puntajes:
         if len(puntajes) >= 1:
