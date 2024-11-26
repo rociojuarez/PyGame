@@ -1,7 +1,7 @@
 # Configuración de constantes
 ANCHO, ALTO = 700, 700
 TAMAÑO_MATRIZ = 8
-TAMAÑO_CELDA = 45
+TAMAÑO_CELDA = 40
 PATH_ARCHIVO_PUNTAJES = "./assets/puntajes.json"
 
 # Colores

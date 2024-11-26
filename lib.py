@@ -234,7 +234,7 @@ def mostrar_puntajes(pantalla, path_archivo_puntajes):
             alto_nombres = 50
             i = 1
             for jugador in mejores_puntajes:
-                texto_jugador = fuente.render(f"{i}. {jugador["nombre"]}: {jugador["puntaje"]} puntos", True, BLANCO)
+                texto_jugador = fuente.render(f"{i}. {jugador['nombre']}: {jugador['puntaje']} puntos", True, BLANCO)
                 rect_nombre = texto_jugador.get_rect(center=(ANCHO // 2, ALTO // 4 + alto_nombres))
                 alto_nombres += 30
                 pantalla.blit(texto_jugador, rect_nombre)
