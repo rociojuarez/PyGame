@@ -74,8 +74,12 @@ def modificar_ceros(matriz, tablero, cantidad_filas, cantidad_columnas):
                     matriz[y][x] = conteo_adyacente
 
 def calcular_vacios(tablero, fila , columna, contador_puntaje, cantidad_filas, cantidad_columnas):
-    if not (0 <= fila < cantidad_filas and 0 <= columna < cantidad_columnas):
+    if fila < 0 or fila >= cantidad_filas:
         return
+
+    if columna < 0 or columna >= cantidad_columnas:
+        return
+
     celda_actual = tablero[fila][columna]
     if celda_actual["revelada"] or celda_actual["hay_mina"] or celda_actual["flag"]:
         return
@@ -85,7 +89,6 @@ def calcular_vacios(tablero, fila , columna, contador_puntaje, cantidad_filas, c
         return
     for desplazamiento_fila in range(-1, 2):
         for desplazamiento_columna in range(-1, 2):
-            # Saltar la misma celda
             if desplazamiento_fila == 0 and desplazamiento_columna == 0:
                 continue
             fila_vecina = fila + desplazamiento_fila
@@ -214,8 +217,12 @@ def mostrar_puntajes(pantalla, path_archivo_puntajes):
         hover = fondo_rect.collidepoint(mouse_pos)
 
         # Colores según hover
-        color_fondo = (30, 30, 80) if hover else (20, 20, 60)  # Azul oscuro
-        color_borde = BLANCO if hover else NEGRO
+        if hover:
+            color_fondo = (30, 30, 80)
+            color_borde = BLANCO
+        else:
+            color_fondo = (20, 20, 60)
+            color_borde = NEGRO
 
         pygame.draw.rect(pantalla, color_fondo, fondo_rect)
         pygame.draw.rect(pantalla, color_borde, fondo_rect, 2)
@@ -225,11 +232,13 @@ def mostrar_puntajes(pantalla, path_archivo_puntajes):
 
         if mejores_puntajes:
             alto_nombres = 50
-            for i, jugador in enumerate(mejores_puntajes, start=1):
+            i = 1
+            for jugador in mejores_puntajes:
                 texto_jugador = fuente.render(f"{i}. {jugador["nombre"]}: {jugador["puntaje"]} puntos", True, BLANCO)
                 rect_nombre = texto_jugador.get_rect(center=(ANCHO // 2, ALTO // 4 + alto_nombres))
                 alto_nombres += 30
                 pantalla.blit(texto_jugador, rect_nombre)
+                i += 1
         else:
             texto = fuente.render("No hay puntajes registrados*", True, BLANCO)
             rect_texto = texto.get_rect(center=(ANCHO // 2, ALTO // 2 - 50))
