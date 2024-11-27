@@ -151,7 +151,7 @@ def calcular_vacios(tablero:list[dict], fila:int , columna:int, contador_puntaje
     return contador_puntaje
 
 
-def dibujar_tablero(tablero:list[dict], pantalla:pygame.Surface, final:bool, cantidad_filas:int, cantidad_columnas:int)->None:
+def dibujar_tablero(tablero:list[dict], pantalla:pygame.Surface, final:bool, cantidad_filas:int, cantidad_columnas:int, x_tablero:int, y_tablero:int)->None:
     '''
     Funcion que dibuja el tablero en la pantalla, mostrando las celdas reveladas, las banderas y las minas.
     :param tablero: recibe la matriz "tablero" del juego
@@ -168,11 +168,10 @@ def dibujar_tablero(tablero:list[dict], pantalla:pygame.Surface, final:bool, can
     imagen_mina = pygame.image.load("./assets/bomba.png")
     imagen_bomba = pygame.transform.scale(imagen_mina, (TAMAÑO_CELDA, TAMAÑO_CELDA))
 
-
     for y in range(cantidad_filas):
         for x in range(cantidad_columnas):
             celda = tablero[y][x]
-            rect = pygame.Rect(x * TAMAÑO_CELDA, y * TAMAÑO_CELDA + 50, TAMAÑO_CELDA, TAMAÑO_CELDA)  # Desplazar el tablero hacia abajo
+            rect = pygame.Rect(x_tablero + x * TAMAÑO_CELDA, y_tablero + y * TAMAÑO_CELDA, TAMAÑO_CELDA, TAMAÑO_CELDA)
             if final:
                 celda["revelada"] = True
                 celda["flag"] = False
@@ -200,6 +199,7 @@ def dibujar_tablero(tablero:list[dict], pantalla:pygame.Surface, final:bool, can
                     texto = fuente.render(str(celda["minas_adyacentes"]), True, color)
                     texto_center = texto.get_rect(center=rect.center)
                     pantalla.blit(texto, texto_center)
+                    
             elif celda["flag"]:
                 pantalla.blit(imagen_celda, rect.topleft)
                 pantalla.blit(imagen_marcador, rect.topleft)
@@ -333,12 +333,8 @@ def mostrar_puntajes(pantalla:pygame.Surface, path_archivo_puntajes:str)->str:
         hover = fondo_rect.collidepoint(mouse_pos)
 
         # Colores según hover
-        if hover:
-            color_fondo = (30, 30, 80)
-            color_borde = BLANCO
-        else:
-            color_fondo = (20, 20, 60)
-            color_borde = NEGRO
+        color_fondo = (30, 30, 80) if hover else (20, 20, 60)  # Azul oscuro
+        color_borde = BLANCO if hover else NEGRO
 
         pygame.draw.rect(pantalla, color_fondo, fondo_rect)
         pygame.draw.rect(pantalla, color_borde, fondo_rect, 2)
@@ -348,13 +344,11 @@ def mostrar_puntajes(pantalla:pygame.Surface, path_archivo_puntajes:str)->str:
 
         if mejores_puntajes:
             alto_nombres = 50
-            i = 1
-            for jugador in mejores_puntajes:
-                texto_jugador = fuente.render(f"{i}. {jugador["nombre"]}: {jugador["puntaje"]} puntos", True, BLANCO)
+            for i, jugador in enumerate(mejores_puntajes, start=1):
+                texto_jugador = fuente.render(f"{i}. {jugador['nombre']}: {jugador['puntaje']} puntos", True, BLANCO)
                 rect_nombre = texto_jugador.get_rect(center=(ANCHO // 2, ALTO // 4 + alto_nombres))
                 alto_nombres += 30
                 pantalla.blit(texto_jugador, rect_nombre)
-                i += 1
         else:
             texto = fuente.render("No hay puntajes registrados", True, BLANCO)
             rect_texto = texto.get_rect(center=(ANCHO // 2, ALTO // 2 - 50))
@@ -442,13 +436,13 @@ def iniciar_juego(celda:dict,  indice_nivel:int)->None:
         cantidad_columnas = 16
         cantidad_bombas = 40
         ancho_nivel = ANCHO
-        alto_nivel = ALTO
+        alto_nivel = ALTO + 20
     elif indice_nivel == 2:
         cantidad_filas = 16
         cantidad_columnas = 30
         cantidad_bombas = 100
         ancho_nivel = ANCHO * 1.9
-        alto_nivel = ALTO +110
+        alto_nivel = ALTO + 20
     else:
         cantidad_filas = 8
         cantidad_columnas = 8
@@ -465,6 +459,15 @@ def iniciar_juego(celda:dict,  indice_nivel:int)->None:
     boton_rect = dibujar_boton_reiniciar(pantalla)
     actualizar_pantalla = True
     juego_ganado = False
+
+    # Calcular el tamaño del tablero
+    tamaño_tablero_ancho = cantidad_columnas * TAMAÑO_CELDA
+    tamaño_tablero_alto = cantidad_filas * TAMAÑO_CELDA
+
+    # Calcular la posición para centrar el tablero
+    x_tablero = (ancho_nivel - tamaño_tablero_ancho) // 2
+    y_tablero = (alto_nivel - tamaño_tablero_alto) // 2
+
     while corriendo:
         if not juego_ganado:
             for evento in pygame.event.get():
@@ -473,6 +476,11 @@ def iniciar_juego(celda:dict,  indice_nivel:int)->None:
                     pygame.quit()
                 if evento.type == pygame.MOUSEBUTTONDOWN:
                     x, y = evento.pos
+
+                    # Cálculo de la celda en función de la posición centrada
+                    columna = int((x - x_tablero - 10 ) // TAMAÑO_CELDA)
+                    fila = int((y - y_tablero ) // TAMAÑO_CELDA)  
+
                     if evento.button == 1 and boton_rect.collidepoint(evento.pos):
                         tablero = crear_tablero(celda, cantidad_filas, cantidad_columnas, cantidad_bombas)
                         matriz_dinamica = crear_matriz_dinamica(tablero, cantidad_filas, cantidad_columnas)
@@ -481,7 +489,6 @@ def iniciar_juego(celda:dict,  indice_nivel:int)->None:
                         contador_puntaje = 0000
                         actualizar_pantalla = True
                     else:
-                        columna, fila = x // TAMAÑO_CELDA, (y - 50) // TAMAÑO_CELDA
                         if 0 <= fila < cantidad_filas and 0 <= columna < cantidad_columnas:
                             if evento.button == 1:
                                 if not tablero[fila][columna]["revelada"] and not tablero[fila][columna]["flag"]:
@@ -508,8 +515,7 @@ def iniciar_juego(celda:dict,  indice_nivel:int)->None:
             pantalla.fill(FONDO)
             dibujar_boton_reiniciar(pantalla)
             puntaje(pantalla, contador_puntaje, ancho_nivel)
-            dibujar_tablero(tablero, pantalla, final, cantidad_filas, cantidad_columnas)
-
+            dibujar_tablero(tablero, pantalla, final, cantidad_filas, cantidad_columnas, x_tablero, y_tablero)
             pygame.display.flip()
             actualizar_pantalla = False
 
