@@ -208,18 +208,41 @@ def dibujar_tablero(tablero:list[dict], pantalla:pygame.Surface, final:bool, can
 
             pygame.draw.rect(pantalla, NEGRO, rect, 1)
 
-def dibujar_boton_reiniciar(pantalla:pygame.Surface)->pygame.Rect:
+def dibujar_boton(pantalla:pygame.Surface, texto:str, posicion_width:int)->pygame.Rect:
     '''
-    Funcion que crea y dibuja el boton para reiniciar el juego
+    Funcion que crea y dibuja el boton en el juego el juego
     :param pantalla: Recibe por parametro la pantalla donde se va a renderizar el boton.
+    :param texto: Recibe por parametro el texto que va a tener el boton.
+    :param posicion_width: Recibe la posicion en pantalla en la que se quiere renderizar (a lo ancho)
     :return: Retorna el rectangulo donde se va a encontrar el boton.
     '''
-    fuente = pygame.font.Font(None, 25)
-    texto = fuente.render("Reiniciar", True, NEGRO)
-    rect = texto.get_rect(center=(55, 25))
-    pygame.draw.rect(pantalla, GRIS, rect.inflate(20, 10))
-    pantalla.blit(texto, rect)
-    return rect
+    fuente = pygame.font.Font("./assets/fonts/04b_25__.ttf", 18)
+    texto_volver = fuente.render(texto, True, BLANCO)
+    boton_rect = texto_volver.get_rect(center=(posicion_width, 20))
+
+    # Dibujar fondo del botón
+    fondo_rect = pygame.Rect(
+        boton_rect.left - 10, boton_rect.top - 10, boton_rect.width + 20, boton_rect.height + 20
+    )
+
+    # Detectar hover
+    mouse_pos = pygame.mouse.get_pos()
+    hover = fondo_rect.collidepoint(mouse_pos)
+
+    # Colores según hover
+    if hover:
+        color_fondo = (30, 30, 80)
+        color_borde = BLANCO
+    else:
+        color_fondo = (20, 20, 60)
+        color_borde = NEGRO
+
+    pygame.draw.rect(pantalla, color_fondo, fondo_rect)
+    pygame.draw.rect(pantalla, color_borde, fondo_rect, 2)
+
+    # Dibujar texto del botón
+    pantalla.blit(texto_volver, boton_rect)
+    return boton_rect
 
 def verificar_juego_ganado(tablero:list[dict], cantidad_filas:int, cantidad_columnas:int, cantidad_minas:int)->bool:
     '''
@@ -424,12 +447,12 @@ def pantalla_ingreso_nombre(contador_puntaje:int)->None:
 
         pygame.display.flip()
 
-def iniciar_juego(celda:dict,  indice_nivel:int)->None:
+def iniciar_juego(celda:dict,  indice_nivel:int)->str:
     '''
     Funcion que inicia el juego, setea el tablero dependiendo del nivel elegido en la pantalla de inicio y lleva el contador de puntaje del juego.
     :param celda: Recibe el diccionario de la celda.
     :param indice_nivel: Recibe el indice del nivel seleccionado, siendo 0 Facil, 1 Medio y 2 Dificil.
-    :return: No retorna nada
+    :return: Retorna un string con la pantalla a la que quiere dirigirse.
     '''
     if indice_nivel == 1:
         cantidad_filas = 16
@@ -456,9 +479,11 @@ def iniciar_juego(celda:dict,  indice_nivel:int)->None:
     final = False
     contador_puntaje = 0000
     corriendo = True
-    boton_rect = dibujar_boton_reiniciar(pantalla)
+    boton_rect = dibujar_boton(pantalla, "Reiniciar",ancho_nivel-50)
+    boton_volver = dibujar_boton(pantalla, "Volver", 35)
     actualizar_pantalla = True
     juego_ganado = False
+    pantalla_retorno = "menu"
 
     # Calcular el tamaño del tablero
     tamaño_tablero_ancho = cantidad_columnas * TAMAÑO_CELDA
@@ -488,13 +513,24 @@ def iniciar_juego(celda:dict,  indice_nivel:int)->None:
                         final = False
                         contador_puntaje = 0000
                         actualizar_pantalla = True
+                    elif evento.button == 1 and boton_volver.collidepoint(evento.pos):
+                        pantalla = pygame.display.set_mode((ANCHO, ALTO))
+                        pantalla_retorno = "menu"
+                        corriendo = False
+                        final = False
+                        contador_puntaje = 0000
+                        actualizar_pantalla = False
                     else:
                         if 0 <= fila < cantidad_filas and 0 <= columna < cantidad_columnas:
                             if evento.button == 1:
                                 if not tablero[fila][columna]["revelada"] and not tablero[fila][columna]["flag"]:
                                     if tablero[fila][columna]["hay_mina"]:
                                         final = True
+                                        sonido_explosion = pygame.mixer.Sound("./assets/large-crash-with-cataiff-14490.mp3")
+                                        sonido_explosion.play()
                                     else:
+                                        sonido = pygame.mixer.Sound("./assets/funny-cat-meow-247118.mp3")
+                                        sonido.play()
                                         if tablero[fila][columna]["minas_adyacentes"] == 0:
                                             contador_puntaje = calcular_vacios(tablero, fila, columna, contador_puntaje, cantidad_filas, cantidad_columnas)
                                         else:
@@ -513,11 +549,13 @@ def iniciar_juego(celda:dict,  indice_nivel:int)->None:
 
         if actualizar_pantalla:
             pantalla.fill(FONDO)
-            dibujar_boton_reiniciar(pantalla)
+            dibujar_boton(pantalla, "Reiniciar", ancho_nivel-50)
+            dibujar_boton(pantalla, "Volver", 35)
             puntaje(pantalla, contador_puntaje, ancho_nivel)
             dibujar_tablero(tablero, pantalla, final, cantidad_filas, cantidad_columnas, x_tablero, y_tablero)
             pygame.display.flip()
             actualizar_pantalla = False
+    return pantalla_retorno
 
 
 def puntaje(pantalla:pygame.Surface, contador_puntaje:int, ancho:int)->None:
@@ -528,12 +566,32 @@ def puntaje(pantalla:pygame.Surface, contador_puntaje:int, ancho:int)->None:
     :param ancho: Recibe el ancho de la pantalla para ajustar el puntaje.
     :return: Retorna None
     '''
-    fuente = pygame.font.Font(None, 25)
-    texto = fuente.render(f"Puntaje: {str(contador_puntaje).zfill(4)}", True, NEGRO)
-    rect = texto.get_rect(center=(ancho - 60, 25))
-    pygame.draw.rect(pantalla, GRIS, rect.inflate(20, 10))  # Fondo del botón
+    fuente = pygame.font.Font("./assets/fonts/04b_25__.ttf", 20)
+    texto = fuente.render(f"Puntaje: {str(contador_puntaje).zfill(4)}", True, BLANCO)
+    rect = texto.get_rect(center=(ancho//2, 20))
+    pygame.draw.rect(pantalla, FONDO, rect.inflate(20, 10))
     pantalla.blit(texto, rect)
     return None
+
+def dibujar_boton_mute(pantalla:pygame.Surface, imagen:pygame.image)->pygame.Rect:
+    '''
+    Funcion que crea el boton de mute en la pantalla.
+    :param pantalla: Recibe la pantalla donde se va a renderizar el boton.
+    :param imagen: Recibe la imagen del boton de mute.
+    :return: Retorna el rectangulo donde se va a encontrar el boton.
+    '''
+
+    rect_boton = imagen.get_rect(topleft=(ANCHO - 80,15))
+    mouse_pos = pygame.mouse.get_pos()
+
+    # Dibujar la imagen del botón
+    pantalla.blit(imagen, rect_boton.topleft)
+
+    # Detectar hover
+    if rect_boton.collidepoint(mouse_pos):
+        pygame.draw.rect(pantalla, (255, 255, 255), rect_boton, 2)
+
+    return rect_boton
 
 def mostrar_menu(pantalla:pygame.Surface) ->Tuple[str, int]:
     '''
@@ -543,9 +601,14 @@ def mostrar_menu(pantalla:pygame.Surface) ->Tuple[str, int]:
     '''
     pantalla_retorno = "salir"
     imagen_fondo = pygame.image.load("./assets/back.jpg")
+    imagen_boton_mute = pygame.image.load("./assets/mute.png")
+    imagen_boton_mute = pygame.transform.scale(imagen_boton_mute, (70, 70))
     run = True
     niveles = ["Facil", "Medio", "Dificil"]
     indice_nivel = 0
+    mute = False
+    boton_mute = dibujar_boton_mute(pantalla, imagen_boton_mute)
+    pygame.event.clear()
     while run:
         pantalla.blit(imagen_fondo, (0, 0))
         font = pygame.font.Font("./assets/fonts/04b_25__.ttf", 100)
@@ -554,6 +617,7 @@ def mostrar_menu(pantalla:pygame.Surface) ->Tuple[str, int]:
         game_name = font.render("Buscaminas", True, BLANCO)
         text_rect = game_name.get_rect(center=(ANCHO/2, ALTO/8))
         pantalla.blit(game_name, text_rect)
+        pantalla.blit(imagen_boton_mute, boton_mute.topleft)
 
         botones = [
             {"texto": "Jugar", "pos": (ANCHO // 5, ALTO // 2+ 100)},
@@ -590,7 +654,7 @@ def mostrar_menu(pantalla:pygame.Surface) ->Tuple[str, int]:
             # Dibujar texto del botón
             pantalla.blit(texto_renderizado, texto_rect)
             botones_rect.append(fondo_rect)
-
+        pygame.display.flip()
         for evento in pygame.event.get():
             if evento.type == pygame.QUIT:
                 run = False
@@ -607,6 +671,12 @@ def mostrar_menu(pantalla:pygame.Surface) ->Tuple[str, int]:
                 elif botones_rect[3].collidepoint(evento.pos):
                     run = False
                     pantalla_retorno = "salir"
+                elif boton_mute.collidepoint(evento.pos):
+                    mute = not mute
+                    if mute:
+                        pygame.mixer.music.pause()
+                    else:
+                        pygame.mixer.music.unpause()
         pygame.display.flip()
     return pantalla_retorno, indice_nivel
 
@@ -630,8 +700,7 @@ def main()->None:
             respuesta = mostrar_menu(pantalla)
             pantalla_actual, indice_nivel = respuesta
         elif pantalla_actual == "jugar":
-            iniciar_juego(celda, indice_nivel)
-            pantalla_actual = "menu"
+            pantalla_actual = iniciar_juego(celda, indice_nivel)
         elif pantalla_actual == "puntajes":
             pantalla_actual = mostrar_puntajes(pantalla, PATH_ARCHIVO_PUNTAJES)
     pygame.quit()
