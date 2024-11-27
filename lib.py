@@ -21,10 +21,29 @@ def inicializar_matriz(celda: dict, cantidad_filas, cantidad_columnas)->list:
     return matriz
 
 
-# A. Desarrollar una función que realice la creación dinámica de una matriz de 8 filas por 8
-# columnas. En la misma se deberá incluir:
-#  Menos uno (-1): Si hay una mina en la coordenada de la matriz
-#  Cero (0): Si no hay una mina en la coordenada de la matriz, ni minas contiguas.
+# Colocar minas aleatoriamente
+def colocar_minas(tablero, cantidad_filas, cantidad_columnas, cantidad_minas):
+    minas_colocadas = 0
+    while minas_colocadas < cantidad_minas:
+        x = random.randint(0, cantidad_columnas - 1)
+        y = random.randint(0, cantidad_filas - 1)
+        if not tablero[y][x]["hay_mina"]:
+            tablero[y][x].update({"hay_mina": True})
+            minas_colocadas += 1
+
+# Calcular minas adyacentes
+def calcular_minas_adyacentes(tablero, cantidad_filas, cantidad_columnas):
+    for y in range(cantidad_filas):
+        for x in range(cantidad_columnas):
+            if tablero[y][x]["hay_mina"]:
+                for desplazamiento_fila in range(-1, 2):
+                    for desplazamiento_columna in range(-1, 2):
+                        fila_vecina = y + desplazamiento_fila
+                        columna_vecina = x + desplazamiento_columna
+                        if 0 <= fila_vecina < cantidad_filas and 0 <= columna_vecina < cantidad_columnas:
+                            if not tablero[fila_vecina][columna_vecina]["hay_mina"]:
+                                tablero[fila_vecina][columna_vecina]["minas_adyacentes"] += 1
+
 def inicializar_matriz_ceros(cantidad_filas, cantidad_columnas)->list:
     matriz = []
     for i in range(cantidad_filas):
@@ -45,31 +64,6 @@ def crear_matriz_dinamica(tablero, cantidad_filas, cantidad_columnas):
                 matriz[y][x] = 0
     return matriz
 
-def colocar_minas(tablero, cantidad_filas, cantidad_columnas, cantidad_minas):
-    minas_colocadas = 0
-    while minas_colocadas < cantidad_minas:
-        x = random.randint(0, cantidad_columnas - 1)
-        y = random.randint(0, cantidad_filas - 1)
-        if not tablero[y][x]["hay_mina"]:
-            tablero[y][x].update({"hay_mina": True})
-            minas_colocadas += 1
-
-# B. Desarrollar una función que verifique cada elemento de la matriz y realice la siguiente
-# modificación en cada cero (0) que encuentre si se cumple alguna de las siguientes condiciones:
-def calcular_minas_adyacentes(tablero, cantidad_filas, cantidad_columnas):
-    for y in range(cantidad_filas):
-        for x in range(cantidad_columnas):
-            if tablero[y][x]["hay_mina"]:
-                for desplazamiento_fila in range(-1, 2):
-                    for desplazamiento_columna in range(-1, 2):
-                        fila_vecina = y + desplazamiento_fila
-                        columna_vecina = x + desplazamiento_columna
-                        if 0 <= fila_vecina < cantidad_filas and 0 <= columna_vecina < cantidad_columnas:
-                            if not tablero[fila_vecina][columna_vecina]["hay_mina"]:
-                                tablero[fila_vecina][columna_vecina]["minas_adyacentes"] += 1
-
-
-
 # Modificar ceros en la matriz según las minas contiguas
 def modificar_ceros(matriz, tablero, cantidad_filas, cantidad_columnas):
     for y in range(cantidad_filas):
@@ -80,12 +74,8 @@ def modificar_ceros(matriz, tablero, cantidad_filas, cantidad_columnas):
                     matriz[y][x] = conteo_adyacente
 
 def calcular_vacios(tablero, fila , columna, contador_puntaje, cantidad_filas, cantidad_columnas):
-    if fila < 0 or fila >= cantidad_filas:
+    if not (0 <= fila < cantidad_filas and 0 <= columna < cantidad_columnas):
         return
-
-    if columna < 0 or columna >= cantidad_columnas:
-        return
-
     celda_actual = tablero[fila][columna]
     if celda_actual["revelada"] or celda_actual["hay_mina"] or celda_actual["flag"]:
         return
@@ -95,6 +85,7 @@ def calcular_vacios(tablero, fila , columna, contador_puntaje, cantidad_filas, c
         return
     for desplazamiento_fila in range(-1, 2):
         for desplazamiento_columna in range(-1, 2):
+            # Saltar la misma celda
             if desplazamiento_fila == 0 and desplazamiento_columna == 0:
                 continue
             fila_vecina = fila + desplazamiento_fila
@@ -104,7 +95,8 @@ def calcular_vacios(tablero, fila , columna, contador_puntaje, cantidad_filas, c
 
 
 # Función para dibujar el tablero
-def dibujar_tablero(tablero, pantalla, final, cantidad_filas, cantidad_columnas):
+def dibujar_tablero(tablero, pantalla, final, cantidad_filas, cantidad_columnas, x_tablero, y_tablero ):
+    
     imagen_celda = pygame.image.load("./assets/celda.png")
     imagen_celda = pygame.transform.scale(imagen_celda, (TAMAÑO_CELDA, TAMAÑO_CELDA))
     imagen_bandera = pygame.image.load("./assets/flag.png")
@@ -112,11 +104,11 @@ def dibujar_tablero(tablero, pantalla, final, cantidad_filas, cantidad_columnas)
     imagen_mina = pygame.image.load("./assets/bomba.png")
     imagen_bomba = pygame.transform.scale(imagen_mina, (TAMAÑO_CELDA, TAMAÑO_CELDA))
 
-
     for y in range(cantidad_filas):
         for x in range(cantidad_columnas):
             celda = tablero[y][x]
-            rect = pygame.Rect(x * TAMAÑO_CELDA, y * TAMAÑO_CELDA + 50, TAMAÑO_CELDA, TAMAÑO_CELDA)  # Desplazar el tablero hacia abajo
+            rect = pygame.Rect(x_tablero + x * TAMAÑO_CELDA, y_tablero + y * TAMAÑO_CELDA, TAMAÑO_CELDA, TAMAÑO_CELDA)
+            #rect = pygame.Rect(x * TAMAÑO_CELDA, y * TAMAÑO_CELDA + 50, TAMAÑO_CELDA, TAMAÑO_CELDA)  # Desplazar el tablero hacia abajo
             if final:
                 celda["revelada"] = True
                 celda["flag"] = False
@@ -144,6 +136,7 @@ def dibujar_tablero(tablero, pantalla, final, cantidad_filas, cantidad_columnas)
                     texto = fuente.render(str(celda["minas_adyacentes"]), True, color)
                     texto_center = texto.get_rect(center=rect.center)
                     pantalla.blit(texto, texto_center)
+                    
             elif celda["flag"]:
                 pantalla.blit(imagen_celda, rect.topleft)
                 pantalla.blit(imagen_marcador, rect.topleft)
@@ -186,6 +179,9 @@ def cargar_archivo_json(ruta:str):
     return datos
 
 def obtener_mejores_puntajes(puntajes):
+    """
+    Obtiene los tres mejores puntajes ordenados de mayor a menor.
+    """
     jugadores = []
     for jugador in puntajes:
         if len(puntajes) >= 1:
@@ -236,12 +232,8 @@ def mostrar_puntajes(pantalla, path_archivo_puntajes):
         hover = fondo_rect.collidepoint(mouse_pos)
 
         # Colores según hover
-        if hover:
-            color_fondo = (30, 30, 80)
-            color_borde = BLANCO
-        else:
-            color_fondo = (20, 20, 60)
-            color_borde = NEGRO
+        color_fondo = (30, 30, 80) if hover else (20, 20, 60)  # Azul oscuro
+        color_borde = BLANCO if hover else NEGRO
 
         pygame.draw.rect(pantalla, color_fondo, fondo_rect)
         pygame.draw.rect(pantalla, color_borde, fondo_rect, 2)
@@ -251,13 +243,11 @@ def mostrar_puntajes(pantalla, path_archivo_puntajes):
 
         if mejores_puntajes:
             alto_nombres = 50
-            i = 1
-            for jugador in mejores_puntajes:
+            for i, jugador in enumerate(mejores_puntajes, start=1):
                 texto_jugador = fuente.render(f"{i}. {jugador['nombre']}: {jugador['puntaje']} puntos", True, BLANCO)
                 rect_nombre = texto_jugador.get_rect(center=(ANCHO // 2, ALTO // 4 + alto_nombres))
                 alto_nombres += 30
                 pantalla.blit(texto_jugador, rect_nombre)
-                i += 1
         else:
             texto = fuente.render("No hay puntajes registrados*", True, BLANCO)
             rect_texto = texto.get_rect(center=(ANCHO // 2, ALTO // 2 - 50))
@@ -332,13 +322,13 @@ def iniciar_juego(celda, pantalla, indice_nivel:int):
         cantidad_columnas = 16
         cantidad_bombas = 40
         ancho_nivel = ANCHO
-        alto_nivel = ALTO
+        alto_nivel = ALTO + 20
     elif indice_nivel == 2:
         cantidad_filas = 16
         cantidad_columnas = 30
         cantidad_bombas = 100
         ancho_nivel = ANCHO * 1.9
-        alto_nivel = ALTO +110
+        alto_nivel = ALTO + 20
     else:
         cantidad_filas = 8
         cantidad_columnas = 8
@@ -355,6 +345,17 @@ def iniciar_juego(celda, pantalla, indice_nivel:int):
     boton_rect = dibujar_boton_reiniciar(pantalla)
     actualizar_pantalla = True
     juego_ganado = False
+
+    # Calcular el tamaño del tablero
+    tamaño_tablero_ancho = cantidad_columnas * TAMAÑO_CELDA
+    tamaño_tablero_alto = cantidad_filas * TAMAÑO_CELDA
+
+    # Calcular la posición para centrar el tablero
+    x_tablero = (ancho_nivel - tamaño_tablero_ancho) // 2
+    y_tablero = (alto_nivel - tamaño_tablero_alto) // 2
+
+
+
     while corriendo:
         if not juego_ganado:
             for evento in pygame.event.get():
@@ -363,6 +364,13 @@ def iniciar_juego(celda, pantalla, indice_nivel:int):
                     pygame.quit()
                 if evento.type == pygame.MOUSEBUTTONDOWN:
                     x, y = evento.pos
+
+                    # Cálculo de la celda en función de la posición centrada
+                    columna = int((x - x_tablero - 10 ) // TAMAÑO_CELDA)
+                    fila = int((y - y_tablero ) // TAMAÑO_CELDA)  
+                    
+
+
                     if evento.button == 1 and boton_rect.collidepoint(evento.pos):
                         tablero = crear_tablero(celda, cantidad_filas, cantidad_columnas, cantidad_bombas)
                         matriz_dinamica = crear_matriz_dinamica(tablero, cantidad_filas, cantidad_columnas)
@@ -372,7 +380,6 @@ def iniciar_juego(celda, pantalla, indice_nivel:int):
                         actualizar_pantalla = True
 
                     else:
-                        columna, fila = x // TAMAÑO_CELDA, (y - 50) // TAMAÑO_CELDA
                         if 0 <= fila < cantidad_filas and 0 <= columna < cantidad_columnas:
                             if evento.button == 1:
                                 if not tablero[fila][columna]["revelada"] and not tablero[fila][columna]["flag"]:
@@ -399,7 +406,7 @@ def iniciar_juego(celda, pantalla, indice_nivel:int):
             pantalla.fill(FONDO)
             dibujar_boton_reiniciar(pantalla)
             puntaje(pantalla, contador_puntaje, ancho_nivel)
-            dibujar_tablero(tablero, pantalla, final, cantidad_filas, cantidad_columnas)
+            dibujar_tablero(tablero, pantalla, final, cantidad_filas, cantidad_columnas, x_tablero, y_tablero)
 
             pygame.display.flip()
             actualizar_pantalla = False

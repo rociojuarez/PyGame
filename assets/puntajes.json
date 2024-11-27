@@ -34,5 +34,13 @@
     {
         "nombre": "Adele",
         "puntaje": 0
+    },
+    {
+        "nombre": "yamil",
+        "puntaje": 1
+    },
+    {
+        "nombre": "ya\r",
+        "puntaje": 0
     }
 ]
